@@ -1,0 +1,46 @@
+services:
+  db:
+    container_name: mariadb
+    image: mariadb:10.6
+    restart: always
+    environment:
+      - MARIADB_ROOT_PASSWORD=frgergrgergggegrgr
+      - MARIADB_PASSWORD=apppass
+      - MARIADB_USER=appuser
+      - MARIADB_DATABASE=demos
+    volumes:
+      - ./initDatabase:/docker-entrypoint-initdb.d
+      - ./mariaDatabase:/var/lib/mysql
+#    ports:
+#      - "3306:3306"
+    healthcheck:
+      test: [ "CMD", "healthcheck.sh", "--su-mysql", "--connect", "--innodb_initialized" ]
+      interval: 30s
+      retries: 5
+
+  phpmyadmin:
+    container_name: phpmyadmin
+    image: phpmyadmin
+    restart: always
+    ports:
+      - "8081:80"
+    environment:
+      - PMA_HOST = db
+      - PMA_PORT = 3306
+      - PMA_ARBITRARY=1
+    depends_on:
+      db:
+        condition: service_healthy
+
+  demo:
+    build: ./client
+    container_name: demo_app
+    image: demo_app:1.0.0
+    volumes:
+      - ./client:/var/www/html
+      - /var/log/apache2/app:/var/log/apache2/
+    ports:
+      - "80:80"
+    depends_on:
+      db:
+        condition: service_healthy
