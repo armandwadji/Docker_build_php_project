@@ -1,5 +1,15 @@
 services:
-  db:
+  web:
+    build: ./php
+    ports:
+      - "80:80"
+    links:
+      - database:db
+    depends_on:
+      database:
+        condition: service_healthy
+
+  database:
     container_name: mariadb
     image: mariadb:10.6
     restart: always
@@ -11,8 +21,6 @@ services:
     volumes:
       - ./initDatabase:/docker-entrypoint-initdb.d
       - ./mariaDatabase:/var/lib/mysql
-#    ports:
-#      - "3306:3306"
     healthcheck:
       test: [ "CMD", "healthcheck.sh", "--su-mysql", "--connect", "--innodb_initialized" ]
       interval: 30s
@@ -20,27 +28,27 @@ services:
 
   phpmyadmin:
     container_name: phpmyadmin
-    image: phpmyadmin
+    image: phpmyadmin:5.2.1-apache
     restart: always
     ports:
       - "8081:80"
     environment:
-      - PMA_HOST = db
+      - PMA_HOST = database
       - PMA_PORT = 3306
       - PMA_ARBITRARY=1
     depends_on:
-      db:
+      database:
         condition: service_healthy
 
-  demo:
-    build: ./client
-    container_name: demo_app
-    image: demo_app:1.0.0
-    volumes:
-      - ./client:/var/www/html
-      - /var/log/apache2/app:/var/log/apache2/
-    ports:
-      - "80:80"
-    depends_on:
-      db:
-        condition: service_healthy
+#  web:
+#    build: php/src
+#    container_name: demo_app
+#    image: demo_app:1.0.0
+#    volumes:
+#      - ./client:/var/www/html
+#      - /var/log/apache2/app:/var/log/apache2/
+#    ports:
+#      - "80:80"
+#    depends_on:
+#      db:
+#        condition: service_healthy
